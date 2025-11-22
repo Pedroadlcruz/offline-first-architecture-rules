@@ -89,92 +89,74 @@ features/
 core/
   shared/
   config/
+```
+
 Rules:
 
-Each feature owns its data/domain/presentation subfolders.
+- Each feature owns its data/domain/presentation subfolders.
+- Shared code goes to core/shared (widgets, data sources, repositories, etc.).
+- Configuration & routing live in core/config.
 
-Shared code goes to core/shared (widgets, data sources, repositories, etc.).
+---
 
-Configuration & routing live in core/config.
+## 3. Code Style & Design Principles
 
-3. Code Style & Design Principles
-3.1 General Code Style
-Write concise, technical Dart code with clear intent.
+### 3.1 General Code Style
 
-Prefer composition over inheritance.
+- Write concise, technical Dart code with clear intent.
+- Prefer composition over inheritance.
+- Use descriptive names with auxiliary verbs for booleans:
+  - isLoading, hasError, canRetry, shouldSync, etc.
+- Keep functions and classes small and focused:
+  - One main responsibility.
+  - Extract private methods or widgets when a block grows too much.
 
-Use descriptive names with auxiliary verbs for booleans:
+### 3.2 File & Module Structure
 
-isLoading, hasError, canRetry, shouldSync, etc.
-
-Keep functions and classes small and focused:
-
-One main responsibility.
-
-Extract private methods or widgets when a block grows too much.
-
-3.2 File & Module Structure
 Each file should follow a logical internal structure, for example:
 
-Public class / exported widget.
-
-Private sub-widgets or helper classes.
-
-Private helpers and extensions.
-
-Static content / constants / types.
+1. Public class / exported widget.
+2. Private sub-widgets or helper classes.
+3. Private helpers and extensions.
+4. Static content / constants / types.
 
 Naming and folder conventions are defined in:
 
-01-naming-convention.md
+- `01-naming-convention-rules.md`
 
-3.3 Functional & Declarative Mindset
+### 3.3 Functional & Declarative Mindset
+
 UI and state should be declarative:
 
-“Given this state, render this UI” – not “do X then manually update Y”.
+- “Given this state, render this UI” – not “do X then manually update Y”.
+- Prefer immutable data structures for entities and state:
+  - Use const constructors where possible.
+  - Use copyWith instead of mutating objects.
+- Encapsulate side effects (I/O, sync, logging) in:
+  - Data layer (repositories/data sources).
+  - Dedicated infrastructure services (e.g. sync services).
 
-Prefer immutable data structures for entities and state:
+---
 
-Use const constructors where possible.
+## 4. Error, Loading & Sync Principles
 
-Use copyWith instead of mutating objects.
+### 4.1 Unified Error Model
 
-Encapsulate side effects (I/O, sync, logging) in:
-
-Data layer (repositories/data sources).
-
-Or in dedicated infrastructure services (e.g. sync services).
-
-4. Error, Loading & Sync Principles
-4.1 Unified Error Model
 All layers use a unified error model (e.g. Result<T> + AppFailure).
 
-Data layer:
+- **Data layer:** catches low-level exceptions (HTTP, DB, parsing) and maps them to AppFailure before returning to domain/presentation.
+- **Domain layer:** works only with Result, AppFailure, and entities/value objects.
+- **Presentation layer:** never throws; it reacts to states like loading, success, error, empty, syncing.
 
-Catches low-level exceptions (HTTP, DB, parsing).
+### 4.2 Predictable States in UI
 
-Maps them to AppFailure before returning to domain/presentation.
-
-Domain layer:
-
-Works only with Result, AppFailure, and entities/value objects.
-
-Presentation layer:
-
-Never throws; it reacts to states like loading, success, error, empty, syncing.
-
-4.2 Predictable States in UI
 For each screen/BLoC, we explicitly define the possible states, for example:
 
-Initial
-
-Loading
-
-Loaded
-
-Error
-
-(optionally) Syncing, Empty, Refreshing
+- Initial
+- Loading
+- Loaded
+- Error
+- (optionally) Syncing, Empty, Refreshing
 
 Rules:
 
@@ -196,97 +178,84 @@ Details in:
 5.1 Responsive Calculation (Extensions / Helpers)
 We use centralized responsive helpers (e.g. .dW, .dH, .fS, .responsive()) instead of:
 
-Hard-coding pixel values everywhere.
+---
 
-Repeating MediaQuery logic across widgets.
+## 5. Responsive & Design Mapping Principles
 
-Design tokens / base sizes are defined once and reused.
+### 5.1 Responsive Calculation (Extensions / Helpers)
+
+We use centralized responsive helpers (e.g. `.dW`, `.dH`, `.fS`, `.responsive()`) instead of:
+
+- Hard-coding pixel values everywhere.
+- Repeating MediaQuery logic across widgets.
+- Duplicating design tokens / base sizes per widget.
 
 Guidelines (high level):
 
-Use .dW for width-based measurements and horizontal padding.
-
-Use .dH for height-based measurements and vertical spacing.
-
-Use .fS (or equivalent) to map Figma font sizes to responsive text.
-
-Use .responsive() to map design sizes to min/max ranges depending on screen type.
+- Use `.dW` for width-based measurements and horizontal padding.
+- Use `.dH` for height-based measurements and vertical spacing.
+- Use `.fS` (or equivalent) to map Figma font sizes to responsive text.
+- Use `.responsive()` to map design sizes to min/max ranges depending on screen type.
 
 The detailed responsive rules live in:
 
-responsive_calculation_guidelines.md (or equivalent).
+- `responsive-calculation-guidelines.md` (optional; create if missing).
 
-6. Router, Navigation & Factories Principles
+---
+
+## 6. Router, Navigation & Factories Principles
+
 Navigation is centralized using:
 
-AppRoutes (route names/paths).
-
-AppRouter (GoRouter configuration).
-
-AppNavigator (navigation helpers).
-
-PageFactory and WidgetFactory (dependency-aware creators).
+- AppRoutes (route names/paths).
+- AppRouter (GoRouter configuration).
+- AppNavigator (navigation helpers).
+- PageFactory and WidgetFactory (dependency-aware creators).
 
 Routing is decoupled from concrete page implementations:
 
-Router only knows about factories, not about internal widgets.
-
-Auth and connectivity integrate via:
-
-AppRouterRefreshNotifier listening to auth + network to trigger redirects.
+- Router only knows about factories, not about internal widgets.
+- Auth and connectivity integrate via:
+  - AppRouterRefreshNotifier listening to auth + network to trigger redirects.
 
 Details in:
 
-07-routes-and-factories-part1-rules.md 
-08-routes-and-factories-part2-rules.md
+- `07-routes-and-factories-part1-rules.md` 
+- `08-routes-and-factories-part2-rules.md`
 
-7. How to Use These Core Principles
+---
+
+## 7. How to Use These Core Principles
+
 When creating or modifying code:
 
-Start from the architecture:
+- Start from the architecture:
+  - Which feature?
+  - Which layer (data / domain / presentation)?
+- Apply offline-first mindset:
+  - Read from local first.
+  - Write locally + enqueue outbox.
+  - Expose sync state.
+- Respect naming, structure, and folder boundaries:
+  - Follow `01-naming-convention-rules.md`.
+- Design explicit states:
+  - What are the valid states for this screen/BLoC?
+  - How does the UI look in each one?
+- Keep it small and testable:
+  - One main responsibility per class/file.
+  - Move cross-cutting or shared logic to core/shared.
 
-Which feature?
+---
 
-Which layer (data / domain / presentation)?
+## 8. Related Documents
 
-Apply offline-first mindset:
-
-Read from local first.
-
-Write locally + enqueue outbox.
-
-Expose sync state.
-
-Respect naming, structure, and folder boundaries:
-
-Follow 01-naming-convention.md
-
-Design explicit states:
-
-What are the valid states for this screen/BLoC?
-
-How does the UI look in each one?
-
-Keep it small and testable:
-
-One main responsibility per class/file.
-
-Move cross-cutting or shared logic to core/shared.
-
-8. Related Documents
-This document is the entry point to the architecture.
+This document is the entry point to the architecture.  
 For details, see:
 
-02-data-layer-rules.md
-
-03-domain-layer-rules.md
-
-04-presentation-layer-rules.md
-
-05-offline-first-and-sync-part1-rules.md
-
-06-offline-first-and-sync-part2-rules.md
-
-07-routes-and-factories-part1-rules.md
-
-08-routes-and-factories-part2-rules.md
+- `02-data-layer-rules.md`
+- `03-domain-layer-rules.md`
+- `04-presentation-layer-rules.md`
+- `05-offline-first-and-sync-part1-rules.md`
+- `06-offline-first-and-sync-part2-rules.md`
+- `07-routes-and-factories-part1-rules.md`
+- `08-routes-and-factories-part2-rules.md`

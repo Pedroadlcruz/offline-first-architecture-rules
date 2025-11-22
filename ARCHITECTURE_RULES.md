@@ -10,7 +10,7 @@ Each section links to a more detailed document under `docs/architecture/`.
 
 ## 1. Core Principles
 
-**File:** `docs/architecture/01_core_principles.md`
+**File:** `docs/architecture/00-core-principles.md`
 
 Defines the **global architecture philosophy**:
 
@@ -27,9 +27,25 @@ Read this **first** when onboarding or reviewing decisions.
 
 ---
 
-## 2. Data Layer Rules
+## 2. Naming Conventions
 
-**File:** `docs/architecture/02_data_layer_rules.md`
+**File:** `docs/architecture/01-naming-convention-rules.md`
+
+Defines **file naming, folder structure, and validation regexes**:
+
+- Patterns per layer (data/domain/presentation + sync/outbox).
+- Location constraints (where repositories, blocs, etc. live).
+- Example validation script (`validate_naming.sh`).
+- Example `dart_code_metrics` snippet.
+- Naming checklist.
+
+Use this when **creating new files** or reviewing **PR structure/naming**.
+
+---
+
+## 3. Data Layer Rules
+
+**File:** `docs/architecture/02-data-layer-rules.md`
 
 Defines how the **data layer** must work:
 
@@ -45,15 +61,14 @@ Defines how the **data layer** must work:
 - Allowed and forbidden dependencies.
 - Naming and folder conventions.
 - Checklist before merging new data-layer code.
-- Example repository / mapper / local data source patterns.
 
 Use this when adding/changing **repositories, data sources, models or mappers**.
 
 ---
 
-## 3. Domain Layer Rules
+## 4. Domain Layer Rules
 
-**File:** `docs/architecture/03_domain_layer_rules.md`
+**File:** `docs/architecture/03-domain-layer-rules.md`
 
 Defines the **domain layer** contracts and business logic:
 
@@ -65,15 +80,14 @@ Defines the **domain layer** contracts and business logic:
 - Allowed/forbidden dependencies (no framework, no data layer).
 - Naming and folder conventions.
 - Checklist for new domain code.
-- Example entities, repositories, use cases, value objects.
 
 Use this when touching **business rules, entities, or use cases**.
 
 ---
 
-## 4. Presentation Layer Rules
+## 5. Presentation Layer Rules
 
-**File:** `docs/architecture/04_presentation_layer_rules.md`
+**File:** `docs/architecture/04-presentation-layer-rules.md`
 
 Defines how the **UI layer** should be structured:
 
@@ -97,25 +111,19 @@ Use this when creating/modifying **pages, widgets, or BLoCs**.
 
 ---
 
-## 5. Offline-First & Sync Rules
+## 6. Offline-First & Sync Rules
 
-**File:** `docs/architecture/05_offline_first_and_sync.md`
+**Files:** 
+- `docs/architecture/05-offline-first-and-sync-part1-rules.md`
+- `docs/architecture/06-offline-first-and-sync-part2-rules.md`
 
-Defines the **offline-first and synchronization strategy**:
+Define the **offline-first and synchronization strategy**:
 
 - Local DB as **Single Source of Truth (SSoT)**.
-- Read flow:
-  - Always from local DB first, then background sync.
-- Outbox pattern:
-  - Structure of outbox entries.
-  - Enqueue → send → confirm → retry flows.
-- Delta sync:
-  - Using `lastSync` timestamp or similar.
-  - Per-entity sync and conflict strategies.
-- Responsibilities by layer:
-  - Data: outbox/sync local & remote data sources.
-  - Domain: outbox/sync repositories.
-  - Presentation: sync status BLoC + widgets.
+- Read flow: always from local DB first, then background sync.
+- Outbox pattern: enqueue → send → confirm → retry flows.
+- Delta sync: timestamps/version tokens, conflict strategies.
+- Responsibilities by layer (data/domain/presentation).
 - End-to-end sync flows (push + pull).
 - Naming conventions for sync/outbox components.
 - Checklist for new features that participate in sync.
@@ -124,34 +132,13 @@ Use this when implementing anything related to **sync, outbox, or offline behavi
 
 ---
 
-## 6. Naming & Regex Conventions
-
-**File:** `docs/architecture/06_naming_and_regex.md`
-
-Defines **file naming, folder structure, and validation regexes**:
-
-- Naming patterns for:
-  - Data layer (data sources, repositories, models, tables, DAOs).
-  - Domain layer (entities, repositories, use cases, value objects).
-  - Presentation layer (pages, widgets, BLoCs, states, events).
-  - Core/shared sync & outbox components.
-- Location constraints:
-  - Where `*_repository_impl.dart` must live.
-  - Where `*_repository.dart` interfaces must live.
-  - Where `*_bloc.dart` must live.
-- Example validation script (`validate_naming.sh`).
-- Example `dart_code_metrics` snippet.
-- Naming checklist.
-
-Use this when **creating new files** or reviewing **PR structure/naming**.
-
----
-
 ## 7. Router & Factories Rules
 
-**File:** `docs/architecture/07_router_and_factories.md`
+**Files:** 
+- `docs/architecture/07-routes-and-factories-part1-rules.md`
+- `docs/architecture/08-routes-and-factories-part2-rules.md`
 
-Defines how **routing and factories** are structured:
+Define how **routing and factories** are structured:
 
 - Responsibilities for:
   - `PageFactory` and `WidgetFactory`.
@@ -175,7 +162,7 @@ Use this when adding/changing **routes, navigation flows, or factories**.
 
 ## 8. (Optional) Responsive Calculation Guidelines
 
-**File (suggested):** `docs/architecture/responsive_calculation_guidelines.md`
+**File (suggested):** `docs/architecture/responsive-calculation-guidelines.md`
 
 Recommended content:
 
@@ -196,11 +183,11 @@ Use this when working on **layout, spacing, and typography**.
 2. Decide which layers are affected:
    - Data? Domain? Presentation? Sync? Router?
 3. Before coding, skim:
-   - `01_core_principles.md`
+   - `00-core-principles.md`
    - Plus the relevant layer documents.
 4. While implementing:
-   - Follow naming and folder rules (`06_naming_and_regex.md`).
-   - Apply offline-first patterns when data is involved (`05_offline_first_and_sync.md`).
+   - Follow naming and folder rules (`01-naming-convention-rules.md`).
+   - Apply offline-first patterns when data is involved (`05-offline-first-and-sync-part1-rules.md` + `part2`).
 5. Before merging:
    - Use the checklist in each relevant section.
 
@@ -215,8 +202,9 @@ Use this when working on **layout, spacing, and typography**.
 
 - Step 1: Read `00-core-principles.md`.
 - Step 2: Read `04-presentation-layer-rules.md` (UI dev) or `02-data-layer-rules.md` (backend-ish dev).
-- Step 3: Implement a small feature following these rules.
-- Step 4: Review the implementation explicitly against this index.
+- Step 3: Skim `01-naming-convention-rules.md` for structure/naming.
+- Step 4: Implement a small feature following these rules.
+- Step 5: Review the implementation explicitly against this index.
 
 ---
 
