@@ -3,7 +3,6 @@ trigger: glob
 globs: lib/**/data/**/*.dart
 ---
 
-
 # Data Layer Rules
 
 ## 1. Purpose of the Data Layer

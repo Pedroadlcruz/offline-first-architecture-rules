@@ -3,8 +3,13 @@ trigger: glob
 globs: lib/core/config/router/**/*.dart, lib/core/config/factories/**/*.dart
 ---
 
-6. Router Patterns
-6.1 AppRoutes Enum
+# Router & Factories Rules (Part 2)
+
+## 6. Router Patterns
+
+### 6.1 AppRoutes Enum
+
+```dart
 /// Central enum for all application routes.
 /// Defines paths, names, and route groups.
 enum AppRoute {
@@ -29,8 +34,11 @@ enum AppRoute {
     AppRoute.dashboard,
   ];
 }
+```
 
-6.2 AppRouter (GoRouter Configuration)
+### 6.2 AppRouter (GoRouter Configuration)
+
+```dart
 /// Main router configuration using GoRouter.
 /// Centralizes all route definitions and redirect logic.
 class AppRouter {
@@ -92,8 +100,11 @@ class AppRouter {
     ],
   );
 }
+```
 
-6.3 AppNavigator Helpers
+### 6.3 AppNavigator Helpers
+
+```dart
 /// Central navigation helpers using GoRouter.
 /// Provides a clean API to navigate from anywhere in the app.
 class AppNavigator {
@@ -120,8 +131,11 @@ class AppNavigator {
   static void pushTo(BuildContext context, AppRoute route) =>
       context.pushNamed(route.name);
 }
+```
 
-6.4 AppRouterRefreshNotifier Pattern
+### 6.4 AppRouterRefreshNotifier Pattern
+
+```dart
 /// Notifier that listens to auth and connectivity changes
 /// and notifies GoRouter to re-evaluate redirects.
 class AppRouterRefreshNotifier extends ChangeNotifier {
@@ -182,9 +196,13 @@ class AppRouterRefreshNotifier extends ChangeNotifier {
     super.dispose();
   }
 }
+```
 
-7. Wizard & Nested Route Patterns
-7.1 ShellRoute for Wizards
+## 7. Wizard & Nested Route Patterns
+
+### 7.1 ShellRoute for Wizards
+
+```dart
 // Wizard using ShellRoute to keep the same BLoC across steps.
 final wizardRoutes = ShellRoute(
   builder: (context, state, child) => child,
@@ -205,8 +223,11 @@ final wizardRoutes = ShellRoute(
     ),
   ],
 );
+```
 
-7.2 Nested Routes
+### 7.2 Nested Routes
+
+```dart
 GoRoute(
   path: AppRoute.parent.path,
   name: AppRoute.parent.name,
@@ -222,56 +243,49 @@ GoRoute(
     ),
   ],
 );
+```
 
-8. Naming & Location
-8.1 Factories
+## 8. Naming & Location
 
-page_factory.dart – PageFactory and helpers.
+### 8.1 Factories
 
-widget_factory.dart – WidgetFactory and helpers.
+* `page_factory.dart` – PageFactory and helpers.
+* `widget_factory.dart` – WidgetFactory and helpers.
 
-Location:
+**Location:**
 
-core/config/factories/
+`core/config/factories/`
 
-8.2 Router
+### 8.2 Router
 
-app_router.dart – AppRouter with GoRouter instance.
+* `app_router.dart` – AppRouter with GoRouter instance.
+* `app_navigator.dart` – AppNavigator helpers.
+* `app_routes.dart` – AppRoute enum or similar.
+* `app_router_refresh_notifier.dart` – notifier class.
 
-app_navigator.dart – AppNavigator helpers.
+**Location:**
 
-app_routes.dart – AppRoute enum or similar.
+`core/config/router/`
 
-app_router_refresh_notifier.dart – notifier class.
-
-Location:
-
-core/config/router/
-
-9. Checklist for New Routes
+## 9. Checklist for New Routes
 
 Before adding a new route, verify:
 
- The route is defined in AppRoute with path and name.
+* [ ] The route is defined in AppRoute with path and name.
+* [ ] There is a corresponding factory method in PageFactory.
+* [ ] BLoCs/ViewModels are properly injected in the factory.
+* [ ] Initial events are dispatched when needed.
+* [ ] There is a helper method in AppNavigator for navigation.
+* [ ] If the route requires auth, it is added to protectedRoutes.
+* [ ] If it should show the bottom navigation, it is added to bottomNavRoutes.
+* [ ] Path and query parameters are handled correctly.
+* [ ] The route is registered in AppRouter.routes.
 
- There is a corresponding factory method in PageFactory.
+## 10. Recommended Patterns (Short Examples)
 
- BLoCs/ViewModels are properly injected in the factory.
+### 10.1 Simple Page with BLoC
 
- Initial events are dispatched when needed.
-
- There is a helper method in AppNavigator for navigation.
-
- If the route requires auth, it is added to protectedRoutes.
-
- If it should show the bottom navigation, it is added to bottomNavRoutes.
-
- Path and query parameters are handled correctly.
-
- The route is registered in AppRouter.routes.
-
-10. Recommended Patterns (Short Examples)
-10.1 Simple Page with BLoC
+```dart
 // PageFactory
 static Widget createSimplePage() {
   return _createPageWithNavigation(
@@ -292,8 +306,11 @@ GoRoute(
 // AppNavigator
 static void goToSimple(BuildContext context) =>
     context.goNamed(AppRoute.simple.name);
+```
 
-10.2 Page with Query Parameters
+### 10.2 Page with Query Parameters
+
+```dart
 // PageFactory
 static Widget createPageWithParams({required bool shouldSync}) {
   return _createPageWithNavigation(
@@ -322,8 +339,11 @@ static void goToPage(BuildContext context, {bool shouldSync = false}) =>
       AppRoute.page.name,
       queryParameters: {'shouldSync': shouldSync.toString()},
     );
+```
 
-10.3 Detail Page with Path Parameters
+### 10.3 Detail Page with Path Parameters
+
+```dart
 // PageFactory
 static Widget createDetailPage({required String id}) {
   return _createPageWithNavigation(
@@ -351,8 +371,11 @@ static void goToDetail(BuildContext context, String id) =>
       AppRoute.detail.name,
       pathParameters: {'id': id},
     );
+```
 
-10.4 Modal via WidgetFactory
+### 10.4 Modal via WidgetFactory
+
+```dart
 // WidgetFactory
 static Widget createSelectionModal({
   required void Function(String) onSelected,
@@ -378,6 +401,8 @@ showModalBottomSheet(
     currentValue: currentValue,
   ),
 );
+```
 
+---
 
-Router and factories architecture rules — centralized navigation, dependency injection, and clean routing for Flutter + GoRouter apps.
+*Router and factories architecture rules — centralized navigation, dependency injection, and clean routing for Flutter + GoRouter apps.*

@@ -2,347 +2,260 @@
 trigger: always_on
 ---
 
-# Naming & Regex Conventions
+# Architecture Core Principles
 
-All file names use snake_case and end with `.dart` unless stated otherwise.
-
-## 1. File Naming Patterns by Layer
-
-### 1.1 Data Layer
-
-- **Local data sources**  
-  Pattern: `*_local_data_source.dart`  
-  Examples: `children_local_data_source.dart`, `centers_local_data_source.dart`  
-  Regex: `^[a-z_]+_local_data_source\\.dart$`
-
-- **Remote data sources**  
-  Pattern: `*_remote_data_source.dart`  
-  Examples: `children_remote_data_source.dart`, `centers_remote_data_source.dart`  
-  Regex: `^[a-z_]+_remote_data_source\\.dart$`
-
-- **Repository implementations**  
-  Pattern: `*_repository_impl.dart`  
-  Examples: `children_repository_impl.dart`, `planning_repository_impl.dart`  
-  Regex: `^[a-z_]+_repository_impl\\.dart$`  
-  Note: live only in `data/repositories/`, never in domain/.
-
-- **Mappers**  
-  Pattern: `*_mapper.dart`  
-  Examples: `child_mapper.dart`, `planning_mapper.dart`  
-  Regex: `^[a-z_]+_mapper\\.dart$`
-
-- **Models**  
-  - DTOs: `*_model.dart`  
-    Examples: `child_model.dart`, `center_model.dart`  
-    Regex: `^[a-z_]+_model\\.dart$`
-  - DB/Table models: `*_table.dart`  
-    Examples: `children_table.dart`, `sync_outbox_table.dart`  
-    Regex: `^[a-z_]+_table\\.dart$`
-
-- **DAOs (or DB repositories)**  
-  Pattern: `*_dao.dart`  
-  Examples: `children_dao.dart`, `centers_dao.dart`  
-  Regex: `^[a-z_]+_dao\\.dart$`
-
-### 1.2 Domain Layer
-
-- **Entities**  
-  Pattern: `*.dart` or `*_entity.dart` (optional suffix)  
-  Examples: `child.dart`, `planning.dart`, `child_entity.dart`  
-  Regex: `^[a-z_]+(?:_entity)?\\.dart$`  
-  Convention: prefer names without the `_entity` suffix when clear.
-
-- **Repository interfaces**  
-  Pattern: `*_repository.dart` (no `_impl`)  
-  Examples: `children_repository.dart`, `planning_repository.dart`  
-  Regex: `^[a-z_]+_repository\\.dart$`
-
-- **Use cases / interactors**  
-  Pattern: `*_use_case.dart` or `*_usecase.dart` (be consistent)  
-  Examples: `get_children_for_current_user_use_case.dart`, `create_visit_usecase.dart`  
-  Regex: `^[a-z_]+_(use_case|usecase)\\.dart$`  
-  Convention: verb in present tense; prefer `*_use_case.dart` if starting fresh.
-
-- **Value objects**  
-  Pattern: `*.dart` or `*_value_object.dart` (optional suffix)  
-  Examples: `form_runtime_context.dart`, `form_runtime_context_value_object.dart`  
-  Regex: `^[a-z_]+(?:_value_object)?\\.dart$`  
-  Convention: prefer names without the `_value_object` suffix when clear.
-
-### 1.3 Presentation Layer
-
-- **Pages / screens**  
-  Pattern: `*_page.dart`  
-  Examples: `children_list_page.dart`, `planning_detail_page.dart`  
-  Regex: `^[a-z_]+_page\\.dart$`
-
-- **Widgets**  
-  Pattern: `*_widget.dart`  
-  Examples: `child_card_widget.dart`, `sync_status_widget.dart`  
-  Regex: `^[a-z_]+_widget\\.dart$`
-
-- **BLoCs (or similar state managers)**  
-  - BLoC: `*_bloc.dart` — Regex: `^[a-z_]+_bloc\\.dart$`  
-  - State: `*_state.dart` — Regex: `^[a-z_]+_state\\.dart$`  
-  - Event: `*_event.dart` — Regex: `^[a-z_]+_event\\.dart$`
-
-  Structure options:
-
-  ```text
-  # Multi-file structure
-  blocs/
-    customers_bloc/
-      customers_bloc.dart
-      customers_state.dart
-      customers_event.dart
-
-  # Or single file with parts
-  blocs/
-    customers_bloc.dart   // with 'part' for state/event
-  ```
-
-### 1.4 Core / Shared
-
-- **Outbox-related**  
-  Pattern: `*_outbox_*.dart`  
-  Examples: `outbox_local_data_source.dart`, `outbox_remote_data_source.dart`, `outbox_repository.dart`  
-  Regex: `^[a-z_]*outbox[a-z_]*\\.dart$`
-
-- **Sync-related**  
-  Pattern: `*_sync_*.dart`  
-  Examples: `sync_local_data_source.dart`, `sync_remote_data_source.dart`, `sync_repository.dart`, `sync_status_bloc.dart`  
-  Regex: `^[a-z_]*sync[a-z_]*\\.dart$`
+This document defines the **core principles** that guide the architecture, code style, and patterns across the entire project.  
+All other documents (Data / Domain / Presentation / Offline-First / Naming / Router) are extensions of these principles.
 
 ---
 
-## 2. File Location Rules
+## 1. Goals
 
-Applies to a feature-based architecture like `features/{feature}/data | domain | presentation`.
+### 1.1 Product & UX Goals
 
-### 2.1 Feature Structure
+- The app must **work reliably with bad or no connection** (offline-first mindset).
+- The user should get **fast feedback**: screens load from local data, not from the network.
+- Errors and sync issues must be **visible, understandable, and recoverable**.
+- The UI should feel **consistent across features** (layout, states, loading, errors, sync).
+
+### 1.2 Developer Experience (DX) Goals
+
+- Code should be **predictable, boring in the good way**.
+- A new developer should be able to:
+  - Find where to place/change something in < 1–2 minutes.
+  - Understand the sync strategy without reading the entire codebase.
+- The architecture must scale for:
+  - New features.
+  - New team members.
+  - New platforms (mobile/web/desktop) when needed.
+
+---
+
+## 2. Architectural Principles
+
+### 2.1 Clean Architecture & Layers
+
+We follow a **layered architecture** with clear separation of concerns:
+
+- **Presentation layer**
+  - Widgets, pages, BLoCs/state managers.
+  - No direct access to data sources or repository implementations.
+- **Domain layer**
+  - Entities, value objects, repository interfaces, use cases.
+  - Pure business logic; no frameworks or infrastructure.
+- **Data layer**
+  - Remote and local data sources, models, mappers, repository implementations.
+  - Implements offline-first, outbox, sync, and error mapping.
+
+**Core rule:**  
+> Dependencies always flow **inwards**:  
+> Presentation → Domain → (interfaces) → Data (implementations).
+
+Details for each layer are defined in:
+
+- `02-data-layer-rules.md`
+- `03-domain-layer-rules.md`
+- `04-presentation-layer-rules.md`
+
+---
+
+### 2.2 Offline-First by Default
+
+Offline-first is not a feature; it is the **default design**:
+
+- The **local database is the Single Source of Truth (SSoT)**.
+- All reads are performed from **local storage first**.
+- All writes are **applied locally** and then **enqueued in an outbox**.
+- Sync runs in **background** and uses **delta synchronization** when possible.
+- Presentation layer shows **local state + sync status**, not “just remote state”.
+
+Details and patterns are defined in:
+
+- `05-offline-first-and-sync-part1-rules.md` 
+- `06-offline-first-and-sync-part2-rules.md` 
+
+---
+
+### 2.3 Feature-Oriented Structure
+
+The project is organized by **feature**, not by technical type:
 
 ```text
 features/
   {feature}/
     data/
-      data_sources/
-        *_local_data_source.dart
-        *_remote_data_source.dart
-      mappers/
-        *_mapper.dart
-      models/
-        *_model.dart
-      repositories/
-        *_repository_impl.dart
-
     domain/
-      entities/
-        *.dart  (or *_entity.dart)
-      repositories/
-        *_repository.dart
-      use_cases/   (or usecases/)
-        *_use_case.dart (or *_usecase.dart)
-      value_objects/
-        *.dart  (or *_value_object.dart)
-
     presentation/
-      blocs/
-        *_bloc.dart
-        *_state.dart
-        *_event.dart
-      pages/
-        *_page.dart
-      widgets/
-        *_widget.dart
-```
-
-### 2.2 Core / Shared Structure (Example)
-
-```text
 core/
   shared/
-    data/
-      data_sources/
-        outbox_local_data_source.dart
-        outbox_remote_data_source.dart
-        sync_local_data_source.dart
-        sync_remote_data_source.dart
-      repositories/
-        outbox_repository_impl.dart
-        sync_repository_impl.dart
-
-    domain/
-      repositories/
-        outbox_repository.dart
-        sync_repository.dart
-
-    blocs/
-      sync_status/
-        sync_status_bloc.dart
-        sync_status_state.dart
-        sync_status_event.dart
-
-    widgets/
-      sync_status_widget.dart
-      sync_loading_view.dart
-      sync_success_view.dart
+  config/
 ```
+
+Rules:
+
+- Each feature owns its data/domain/presentation subfolders.
+- Shared code goes to core/shared (widgets, data sources, repositories, etc.).
+- Configuration & routing live in core/config.
 
 ---
 
-## 3. Sync / Outbox Naming Conventions
+## 3. Code Style & Design Principles
 
-### 3.1 Outbox
+### 3.1 General Code Style
 
-- Data sources: `outbox_local_data_source.dart`, `outbox_remote_data_source.dart`
-- Repository interface: `outbox_repository.dart` (domain)
-- Repository implementation: `outbox_repository_impl.dart` (data)
-- DB table / model: `sync_outbox_table.dart`
-- DAO: `outbox_dao.dart`
+- Write concise, technical Dart code with clear intent.
+- Prefer composition over inheritance.
+- Use descriptive names with auxiliary verbs for booleans:
+  - isLoading, hasError, canRetry, shouldSync, etc.
+- Keep functions and classes small and focused:
+  - One main responsibility.
+  - Extract private methods or widgets when a block grows too much.
 
-### 3.2 Sync
+### 3.2 File & Module Structure
 
-- Data sources: `sync_local_data_source.dart`, `sync_remote_data_source.dart`
-- Repository interface: `sync_repository.dart` (domain)
-- Repository implementation: `sync_repository_impl.dart` (data)
-- BLoC / ViewModel: `sync_status_bloc.dart`, `sync_status_state.dart`, `sync_status_event.dart`
-- Widgets: `sync_status_widget.dart`, `sync_loading_view.dart`, `sync_success_view.dart`
+Each file should follow a logical internal structure, for example:
 
----
+1. Public class / exported widget.
+2. Private sub-widgets or helper classes.
+3. Private helpers and extensions.
+4. Static content / constants / types.
 
-## 4. Regex Library (for Validation)
+Naming and folder conventions are defined in:
 
-### 4.1 Data Layer
+- `01-naming-convention-rules.md`
 
-```text
-# Local Data Source
-^[a-z_]+_local_data_source\.dart$
-# Remote Data Source
-^[a-z_]+_remote_data_source\.dart$
-# Repository Implementation
-^[a-z_]+_repository_impl\.dart$
-# Mapper
-^[a-z_]+_mapper\.dart$
-# Model
-^[a-z_]+_model\.dart$
-# DB Table
-^[a-z_]+_table\.dart$
-# DAO
-^[a-z_]+_dao\.dart$
-```
+### 3.3 Functional & Declarative Mindset
 
-### 4.2 Domain Layer
+UI and state should be declarative:
 
-```text
-# Entity
-^[a-z_]+(?:_entity)?\.dart$
-# Repository Interface
-^[a-z_]+_repository\.dart$
-# Use Case
-^[a-z_]+_(use_case|usecase)\.dart$
-# Value Object
-^[a-z_]+(?:_value_object)?\.dart$
-```
-
-### 4.3 Presentation Layer
-
-```text
-# Page
-^[a-z_]+_page\.dart$
-# Widget
-^[a-z_]+_widget\.dart$
-# BLoC
-^[a-z_]+_bloc\.dart$
-# State
-^[a-z_]+_state\.dart$
-# Event
-^[a-z_]+_event\.dart$
-```
+- “Given this state, render this UI” – not “do X then manually update Y”.
+- Prefer immutable data structures for entities and state:
+  - Use const constructors where possible.
+  - Use copyWith instead of mutating objects.
+- Encapsulate side effects (I/O, sync, logging) in:
+  - Data layer (repositories/data sources).
+  - Dedicated infrastructure services (e.g. sync services).
 
 ---
 
-## 5. Regex for Location Constraints
+## 4. Error, Loading & Sync Principles
 
-- `*_repository_impl.dart` must be in `data/repositories`:  
-  `^features/[a-z_]+/data/repositories/[a-z_]+_repository_impl\.dart$`
-- `*_repository.dart` (interfaces) must be in `domain/repositories`:  
-  `^features/[a-z_]+/domain/repositories/[a-z_]+_repository\.dart$`
-- `*_bloc.dart` must be in `presentation/blocs`:  
-  `^features/[a-z_]+/presentation/blocs/[a-z_]+_bloc\.dart$`
+### 4.1 Unified Error Model
 
-*(Adjust the base path `features/` if your project uses a different structure.)*
+All layers use a unified error model (e.g. Result<T> + AppFailure).
 
----
+- **Data layer:** catches low-level exceptions (HTTP, DB, parsing) and maps them to AppFailure before returning to domain/presentation.
+- **Domain layer:** works only with Result, AppFailure, and entities/value objects.
+- **Presentation layer:** never throws; it reacts to states like loading, success, error, empty, syncing.
 
-## 6. Example Validation Script
+### 4.2 Predictable States in UI
 
-Example Bash script to enforce some naming/location rules:
+For each screen/BLoC, we explicitly define the possible states, for example:
 
-```bash
-#!/bin/bash
-# validate_naming.sh
+- Initial
+- Loading
+- Loaded
+- Error
+- (optionally) Syncing, Empty, Refreshing
 
-set -e
+Rules:
 
-# 1. Validate that *_repository_impl.dart is in data/repositories
-find lib/features -name "*_repository_impl.dart" | while read -r file; do
-  if [[ ! "$file" =~ features/[a-z_]+/data/repositories/ ]]; then
-    echo "ERROR: $file should be in data/repositories/"
-    exit 1
-  fi
-done
+Use sealed classes (or union types) for states.
 
-# 2. Validate that *_repository.dart (interfaces) are in domain/repositories
-find lib/features -name "*_repository.dart" ! -name "*_repository_impl.dart" | while read -r file; do
-  if [[ ! "$file" =~ features/[a-z_]+/domain/repositories/ ]]; then
-    echo "ERROR: $file should be in domain/repositories/"
-    exit 1
-  fi
-done
+Use exhaustive pattern matching in the UI:
 
-# 3. Validate BLoC file naming
-find lib/features -name "*_bloc.dart" | while read -r file; do
-  filename=$(basename "$file")
-  if [[ ! "$filename" =~ ^[a-z_]+_bloc\.dart$ ]]; then
-    echo "ERROR: $file does not follow *_bloc.dart naming."
-    exit 1
-  fi
-done
+Every switch on state must handle all cases.
 
-echo "✅ All naming validations passed!"
-```
+Details in:
+
+04-presentation-layer-rules.md
+
+05-offline-first-and-sync-part1-rules.md
+
+06-offline-first-and-sync-part2-rules.md
+
+5. Responsive & Design Mapping Principles
+5.1 Responsive Calculation (Extensions / Helpers)
+We use centralized responsive helpers (e.g. .dW, .dH, .fS, .responsive()) instead of:
 
 ---
 
-## 7. Example dart_code_metrics Rules (Optional)
+## 5. Responsive & Design Mapping Principles
 
-```yaml
-# analysis_options.yaml
-dart_code_metrics:
-  rules:
-    - prefer-single-widget-per-file
-    - avoid-private-typedef-functions
-  anti-patterns:
-    - long-method
-    - long-parameter-list
-  metrics:
-    cyclomatic-complexity: 20
-    maximum-nesting-level: 5
-    number-of-parameters: 4
-    source-lines-of-code: 50
-```
+### 5.1 Responsive Calculation (Extensions / Helpers)
 
-You can extend this section with custom rules later (e.g. scanning widgets importing `*_repository_impl.dart`).
+We use centralized responsive helpers (e.g. `.dW`, `.dH`, `.fS`, `.responsive()`) instead of:
+
+- Hard-coding pixel values everywhere.
+- Repeating MediaQuery logic across widgets.
+- Duplicating design tokens / base sizes per widget.
+
+Guidelines (high level):
+
+- Use `.dW` for width-based measurements and horizontal padding.
+- Use `.dH` for height-based measurements and vertical spacing.
+- Use `.fS` (or equivalent) to map Figma font sizes to responsive text.
+- Use `.responsive()` to map design sizes to min/max ranges depending on screen type.
+
+The detailed responsive rules live in:
+
+- `responsive-calculation-guidelines.md` (optional; create if missing).
 
 ---
 
-## 8. Naming Checklist
+## 6. Router, Navigation & Factories Principles
 
-Before creating a new file, verify:
+Navigation is centralized using:
 
-- The file name matches the correct pattern for its type (entity, model, repo, widget, etc.).
-- The file is placed in the correct directory for its layer (data, domain, presentation).
-- There are no naming conflicts (e.g. repository interface vs implementation).
-- File names use snake_case consistently.
-- Suffixes are consistent: `_impl` only in the data layer, not in domain.
-- Use case files follow one chosen convention (`*_use_case.dart` or `*_usecase.dart`) across the whole project.
+- AppRoutes (route names/paths).
+- AppRouter (GoRouter configuration).
+- AppNavigator (navigation helpers).
+- PageFactory and WidgetFactory (dependency-aware creators).
+
+Routing is decoupled from concrete page implementations:
+
+- Router only knows about factories, not about internal widgets.
+- Auth and connectivity integrate via:
+  - AppRouterRefreshNotifier listening to auth + network to trigger redirects.
+
+Details in:
+
+- `07-routes-and-factories-part1-rules.md` 
+- `08-routes-and-factories-part2-rules.md`
+
+---
+
+## 7. How to Use These Core Principles
+
+When creating or modifying code:
+
+- Start from the architecture:
+  - Which feature?
+  - Which layer (data / domain / presentation)?
+- Apply offline-first mindset:
+  - Read from local first.
+  - Write locally + enqueue outbox.
+  - Expose sync state.
+- Respect naming, structure, and folder boundaries:
+  - Follow `01-naming-convention-rules.md`.
+- Design explicit states:
+  - What are the valid states for this screen/BLoC?
+  - How does the UI look in each one?
+- Keep it small and testable:
+  - One main responsibility per class/file.
+  - Move cross-cutting or shared logic to core/shared.
+
+---
+
+## 8. Related Documents
+
+This document is the entry point to the architecture.  
+For details, see:
+
+- `02-data-layer-rules.md`
+- `03-domain-layer-rules.md`
+- `04-presentation-layer-rules.md`
+- `05-offline-first-and-sync-part1-rules.md`
+- `06-offline-first-and-sync-part2-rules.md`
+- `07-routes-and-factories-part1-rules.md`
+- `08-routes-and-factories-part2-rules.md`

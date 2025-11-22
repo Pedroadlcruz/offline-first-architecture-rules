@@ -155,9 +155,11 @@ class PageFactory {
     );
   }
 }
-5.2 WidgetFactory Pattern
-dart
-Copy code
+```
+
+### 5.2 WidgetFactory Pattern
+
+```dart
 /// Factory for reusable widgets that need dependencies or specific setup.
 class WidgetFactory {
   /// Creates a modal widget with its BLoC.
@@ -182,3 +184,4 @@ class WidgetFactory {
     );
   }
 }
+```

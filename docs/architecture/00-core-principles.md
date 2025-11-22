@@ -1,7 +1,6 @@
 ---
 trigger: always_on
 ---
-
 # Architecture Core Principles
 
 This document defines the **core principles** that guide the architecture, code style, and patterns across the entire project.  
